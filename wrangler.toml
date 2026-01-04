@@ -3,6 +3,6 @@ main = "index.js"
 compatibility_date = "2026-01-04"
 
 # 如果你用 KV（movecar 通常会用）
-[[kv_namespaces]]
-binding = "MOVE_CAR"
-id = "你的_KV_ID"
+# [[kv_namespaces]]
+# binding = "MOVE_CAR"
+# id = "你的_KV_ID"
