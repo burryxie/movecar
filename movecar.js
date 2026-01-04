@@ -121,62 +121,58 @@ function generateMapUrls(lat, lng) {
 
 async function handleNotify(request, url) {
   try {
+    // 1️⃣ 解析请求体
     const body = await request.json();
     const message = body.message || "车旁有人等待";
-    const location = body.location || null;
-    const delayed = body.delayed || false;
+    const delayed = body.delayed === true;
 
-    const confirmUrl = encodeURIComponent(url.origin + "/owner-confirm");
+    // 2️⃣ 构造推送内容（不要 emoji / 不要换行，先保证成功）
+    const title = "MoveCar";
+    const content = `挪车请求：${message}`;
 
-    let notifyBody = "🚗 挪车请求";
-    if (message) notifyBody += `\\n💬 留言: ${message}`;
-
-    if (location && location.lat && location.lng) {
-      const urls = generateMapUrls(location.lat, location.lng);
-      notifyBody += "\\n📍 已附带位置信息，点击查看";
-
-      await MOVE_CAR_STATUS.put(
-        "requester_location",
-        JSON.stringify({
-          lat: location.lat,
-          lng: location.lng,
-          ...urls,
-        }),
-        { expirationTtl: CONFIG.KV_TTL }
-      );
-    } else {
-      notifyBody += "\\n⚠️ 未提供位置信息";
-    }
-
-    await MOVE_CAR_STATUS.put("notify_status", "waiting", {
-      expirationTtl: 600,
-    });
-
-    // 如果是延迟发送，等待30秒
+    // 3️⃣ 可选延迟
     if (delayed) {
-      await new Promise((resolve) => setTimeout(resolve, 30000));
+      await new Promise((r) => setTimeout(r, 30000));
     }
 
-    const title = encodeURIComponent("挪车请求");
+    // 4️⃣ 构造 Bark URL（最保守方式）
+    const barkUrl =
+      `${BARK_URL}/` +
+      `${encodeURIComponent(title)}/` +
+      `${encodeURIComponent(content)}`;
 
-    const barkApiUrl =
-      `${BARK_URL}/${title}/${encodeURIComponent(notifyBody)}` +
-      `?group=MoveCar&level=critical&call=1&sound=minuet` +
-      `&icon=${encodeURIComponent(
-        "https://cdn-icons-png.flaticon.com/512/741/741407.png"
-      )}` +
-      `&url=${confirmUrl}`;
+    // 👉 如果你想加参数，等推送成功后再加
+    // + '?sound=minuet'
 
-    const barkResponse = await fetch(barkApiUrl);
-    if (!barkResponse.ok) throw new Error("Bark API Error");
-
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { "Content-Type": "application/json" },
+    // 5️⃣ 发请求（GET，不要 headers）
+    const resp = await fetch(barkUrl, {
+      method: "GET",
     });
-  } catch (error) {
+
+    // 6️⃣ Bark 返回不是 200 直接抛错
+    if (!resp.ok) {
+      const text = await resp.text();
+      throw new Error(`Bark failed: ${resp.status} ${text}`);
+    }
+
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { status: 500 }
+      JSON.stringify({
+        success: true,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (err) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: err.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
     );
   }
 }
