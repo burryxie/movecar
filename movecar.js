@@ -1,37 +1,40 @@
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
-})
+addEventListener("fetch", (event) => {
+  event.respondWith(handleRequest(event.request));
+});
 
-const CONFIG = { KV_TTL: 3600 }
+const CONFIG = { KV_TTL: 3600 };
 
 async function handleRequest(request) {
-  const url = new URL(request.url)
-  const path = url.pathname
+  const url = new URL(request.url);
+  const path = url.pathname;
 
-  if (path === '/api/notify' && request.method === 'POST') {
+  if (path === "/api/notify" && request.method === "POST") {
     return handleNotify(request, url);
   }
 
-  if (path === '/api/get-location') {
+  if (path === "/api/get-location") {
     return handleGetLocation();
   }
 
-  if (path === '/api/owner-confirm' && request.method === 'POST') {
+  if (path === "/api/owner-confirm" && request.method === "POST") {
     return handleOwnerConfirmAction(request);
   }
 
-  if (path === '/api/check-status') {
-    const status = await MOVE_CAR_STATUS.get('notify_status');
-    const ownerLocation = await MOVE_CAR_STATUS.get('owner_location');
-    return new Response(JSON.stringify({
-      status: status || 'waiting',
-      ownerLocation: ownerLocation ? JSON.parse(ownerLocation) : null
-    }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+  if (path === "/api/check-status") {
+    const status = await MOVE_CAR_STATUS.get("notify_status");
+    const ownerLocation = await MOVE_CAR_STATUS.get("owner_location");
+    return new Response(
+      JSON.stringify({
+        status: status || "waiting",
+        ownerLocation: ownerLocation ? JSON.parse(ownerLocation) : null,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 
-  if (path === '/owner-confirm') {
+  if (path === "/owner-confirm") {
     return renderOwnerPage();
   }
 
@@ -47,12 +50,12 @@ function wgs84ToGcj02(lat, lng) {
 
   let dLat = transformLat(lng - 105.0, lat - 35.0);
   let dLng = transformLng(lng - 105.0, lat - 35.0);
-  const radLat = lat / 180.0 * Math.PI;
+  const radLat = (lat / 180.0) * Math.PI;
   let magic = Math.sin(radLat);
   magic = 1 - ee * magic * magic;
   const sqrtMagic = Math.sqrt(magic);
-  dLat = (dLat * 180.0) / ((a * (1 - ee)) / (magic * sqrtMagic) * Math.PI);
-  dLng = (dLng * 180.0) / (a / sqrtMagic * Math.cos(radLat) * Math.PI);
+  dLat = (dLat * 180.0) / (((a * (1 - ee)) / (magic * sqrtMagic)) * Math.PI);
+  dLng = (dLng * 180.0) / ((a / sqrtMagic) * Math.cos(radLat) * Math.PI);
   return { lat: lat + dLat, lng: lng + dLng };
 }
 
@@ -61,18 +64,50 @@ function outOfChina(lat, lng) {
 }
 
 function transformLat(x, y) {
-  let ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
-  ret += (20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0 / 3.0;
-  ret += (20.0 * Math.sin(y * Math.PI) + 40.0 * Math.sin(y / 3.0 * Math.PI)) * 2.0 / 3.0;
-  ret += (160.0 * Math.sin(y / 12.0 * Math.PI) + 320 * Math.sin(y * Math.PI / 30.0)) * 2.0 / 3.0;
+  let ret =
+    -100.0 +
+    2.0 * x +
+    3.0 * y +
+    0.2 * y * y +
+    0.1 * x * y +
+    0.2 * Math.sqrt(Math.abs(x));
+  ret +=
+    ((20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) *
+      2.0) /
+    3.0;
+  ret +=
+    ((20.0 * Math.sin(y * Math.PI) + 40.0 * Math.sin((y / 3.0) * Math.PI)) *
+      2.0) /
+    3.0;
+  ret +=
+    ((160.0 * Math.sin((y / 12.0) * Math.PI) +
+      320 * Math.sin((y * Math.PI) / 30.0)) *
+      2.0) /
+    3.0;
   return ret;
 }
 
 function transformLng(x, y) {
-  let ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
-  ret += (20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0 / 3.0;
-  ret += (20.0 * Math.sin(x * Math.PI) + 40.0 * Math.sin(x / 3.0 * Math.PI)) * 2.0 / 3.0;
-  ret += (150.0 * Math.sin(x / 12.0 * Math.PI) + 300.0 * Math.sin(x / 30.0 * Math.PI)) * 2.0 / 3.0;
+  let ret =
+    300.0 +
+    x +
+    2.0 * y +
+    0.1 * x * x +
+    0.1 * x * y +
+    0.1 * Math.sqrt(Math.abs(x));
+  ret +=
+    ((20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) *
+      2.0) /
+    3.0;
+  ret +=
+    ((20.0 * Math.sin(x * Math.PI) + 40.0 * Math.sin((x / 3.0) * Math.PI)) *
+      2.0) /
+    3.0;
+  ret +=
+    ((150.0 * Math.sin((x / 12.0) * Math.PI) +
+      300.0 * Math.sin((x / 30.0) * Math.PI)) *
+      2.0) /
+    3.0;
   return ret;
 }
 
@@ -80,61 +115,82 @@ function generateMapUrls(lat, lng) {
   const gcj = wgs84ToGcj02(lat, lng);
   return {
     amapUrl: `https://uri.amap.com/marker?position=${gcj.lng},${gcj.lat}&name=位置`,
-    appleUrl: `https://maps.apple.com/?ll=${gcj.lat},${gcj.lng}&q=位置`
+    appleUrl: `https://maps.apple.com/?ll=${gcj.lat},${gcj.lng}&q=位置`,
   };
 }
 
 async function handleNotify(request, url) {
   try {
     const body = await request.json();
-    const message = body.message || '车旁有人等待';
+    const message = body.message || "车旁有人等待";
     const location = body.location || null;
     const delayed = body.delayed || false;
 
-    const confirmUrl = encodeURIComponent(url.origin + '/owner-confirm');
+    const confirmUrl = encodeURIComponent(url.origin + "/owner-confirm");
 
-    let notifyBody = '🚗 挪车请求';
+    let notifyBody = "🚗 挪车请求";
     if (message) notifyBody += `\\n💬 留言: ${message}`;
 
     if (location && location.lat && location.lng) {
       const urls = generateMapUrls(location.lat, location.lng);
-      notifyBody += '\\n📍 已附带位置信息，点击查看';
+      notifyBody += "\\n📍 已附带位置信息，点击查看";
 
-      await MOVE_CAR_STATUS.put('requester_location', JSON.stringify({
-        lat: location.lat,
-        lng: location.lng,
-        ...urls
-      }), { expirationTtl: CONFIG.KV_TTL });
+      await MOVE_CAR_STATUS.put(
+        "requester_location",
+        JSON.stringify({
+          lat: location.lat,
+          lng: location.lng,
+          ...urls,
+        }),
+        { expirationTtl: CONFIG.KV_TTL }
+      );
     } else {
-      notifyBody += '\\n⚠️ 未提供位置信息';
+      notifyBody += "\\n⚠️ 未提供位置信息";
     }
 
-    await MOVE_CAR_STATUS.put('notify_status', 'waiting', { expirationTtl: 600 });
+    await MOVE_CAR_STATUS.put("notify_status", "waiting", {
+      expirationTtl: 600,
+    });
 
     // 如果是延迟发送，等待30秒
     if (delayed) {
-      await new Promise(resolve => setTimeout(resolve, 30000));
+      await new Promise((resolve) => setTimeout(resolve, 30000));
     }
 
-    const barkApiUrl = `${BARK_URL}/挪车请求/${encodeURIComponent(notifyBody)}?group=MoveCar&level=critical&call=1&sound=minuet&icon=https://cdn-icons-png.flaticon.com/512/741/741407.png&url=${confirmUrl}`;
+    const title = encodeURIComponent("挪车请求");
+
+    const barkApiUrl =
+      `${BARK_URL}/${title}/${encodeURIComponent(notifyBody)}` +
+      `?group=MoveCar&level=critical&call=1&sound=minuet` +
+      `&icon=${encodeURIComponent(
+        "https://cdn-icons-png.flaticon.com/512/741/741407.png"
+      )}` +
+      `&url=${confirmUrl}`;
 
     const barkResponse = await fetch(barkApiUrl);
-    if (!barkResponse.ok) throw new Error('Bark API Error');
+    if (!barkResponse.ok) throw new Error("Bark API Error");
 
     return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ success: false, error: error.message }), { status: 500 });
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500 }
+    );
   }
 }
 
 async function handleGetLocation() {
-  const data = await MOVE_CAR_STATUS.get('requester_location');
+  const data = await MOVE_CAR_STATUS.get("requester_location");
   if (data) {
-    return new Response(data, { headers: { 'Content-Type': 'application/json' } });
+    return new Response(data, {
+      headers: { "Content-Type": "application/json" },
+    });
   }
-  return new Response(JSON.stringify({ error: 'No location' }), { status: 404 });
+  return new Response(JSON.stringify({ error: "No location" }), {
+    status: 404,
+  });
 }
 
 async function handleOwnerConfirmAction(request) {
@@ -144,28 +200,36 @@ async function handleOwnerConfirmAction(request) {
 
     if (ownerLocation) {
       const urls = generateMapUrls(ownerLocation.lat, ownerLocation.lng);
-      await MOVE_CAR_STATUS.put('owner_location', JSON.stringify({
-        lat: ownerLocation.lat,
-        lng: ownerLocation.lng,
-        ...urls,
-        timestamp: Date.now()
-      }), { expirationTtl: CONFIG.KV_TTL });
+      await MOVE_CAR_STATUS.put(
+        "owner_location",
+        JSON.stringify({
+          lat: ownerLocation.lat,
+          lng: ownerLocation.lng,
+          ...urls,
+          timestamp: Date.now(),
+        }),
+        { expirationTtl: CONFIG.KV_TTL }
+      );
     }
 
-    await MOVE_CAR_STATUS.put('notify_status', 'confirmed', { expirationTtl: 600 });
+    await MOVE_CAR_STATUS.put("notify_status", "confirmed", {
+      expirationTtl: 600,
+    });
     return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    await MOVE_CAR_STATUS.put('notify_status', 'confirmed', { expirationTtl: 600 });
+    await MOVE_CAR_STATUS.put("notify_status", "confirmed", {
+      expirationTtl: 600,
+    });
     return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { "Content-Type": "application/json" },
     });
   }
 }
 
 function renderMainPage(origin) {
-  const phone = typeof PHONE_NUMBER !== 'undefined' ? PHONE_NUMBER : '';
+  const phone = typeof PHONE_NUMBER !== "undefined" ? PHONE_NUMBER : "";
 
   const html = `
   <!DOCTYPE html>
@@ -854,7 +918,9 @@ function renderMainPage(origin) {
   </body>
   </html>
   `;
-  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+  return new Response(html, {
+    headers: { "Content-Type": "text/html;charset=UTF-8" },
+  });
 }
 
 function renderOwnerPage() {
@@ -1141,5 +1207,7 @@ function renderOwnerPage() {
   </body>
   </html>
   `;
-  return new Response(html, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } });
+  return new Response(html, {
+    headers: { "Content-Type": "text/html;charset=UTF-8" },
+  });
 }
