@@ -5,6 +5,11 @@ addEventListener("fetch", (event) => {
 const CONFIG = { KV_TTL: 3600 };
 
 async function handleRequest(request) {
+  const country = request.cf?.country;
+  if (country && country !== "CN") {
+    return new Response("Access Denied", { status: 403 });
+  }
+
   const url = new URL(request.url);
   const path = url.pathname;
 
